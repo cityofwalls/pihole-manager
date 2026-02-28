@@ -6,13 +6,52 @@ Management scripts for a Raspberry Pi Zero W running Pi-hole on the home network
 
 ## Setup
 
-Copy `.env.example` to `.env` and fill in your values before running any script:
+### 1. Generate an SSH key for this machine
+
+Each machine gets its own key. This way if a machine is lost you can revoke just that key on the Pi without affecting others.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_pi -C "pihole-manager@$(hostname -s)"
+```
+
+Add a passphrase when prompted (recommended). `ssh-agent` will cache it so you won't be prompted on every run:
+
+```bash
+ssh-add ~/.ssh/id_ed25519_pi
+```
+
+### 2. Authorize the key on the Pi
+
+You'll need to authenticate once with the Pi's password to install the public key:
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519_pi.pub raspberrypi@<PI_HOST>
+```
+
+After this, password auth is no longer needed. To disable it entirely on the Pi (optional but recommended):
+
+```bash
+./connect.sh "sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config && sudo systemctl restart ssh"
+```
+
+### 3. Configure .env
+
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
 
 `.env` is gitignored and never committed.
+
+### Setting up on a new machine
+
+Repeat steps 1 and 2 — generate a fresh key on the new machine and authorize it on the Pi. Do not copy the private key from another machine. To revoke access for a machine, remove its public key from `~/.ssh/authorized_keys` on the Pi:
+
+```bash
+./connect.sh  # SSH in
+nano ~/.ssh/authorized_keys  # delete the line for the machine being removed
+```
 
 ---
 
