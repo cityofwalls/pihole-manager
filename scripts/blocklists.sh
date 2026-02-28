@@ -52,11 +52,15 @@ add_blocklist() {
 
     echo "  Adding: $url"
     if [[ "$MAJOR_VER" -ge 6 ]]; then
-        $SSH "curl -sSf -X POST http://localhost/api/lists \
-            -H 'Content-Type: application/json' \
-            -d '{\"address\":\"$url\",\"type\":\"block\",\"enabled\":true,\"comment\":\"added by pihole-manager\"}'" \
+        local sid
+        sid=$(pihole_api_login) || return 1
+        curl -sSf -X POST "http://$PI_HOST/api/lists?type=block" \
+            -H "Content-Type: application/json" \
+            -H "X-FTL-SID: $sid" \
+            -d "{\"address\":\"$url\",\"enabled\":true,\"comment\":\"added by pihole-manager\"}" \
         && echo "  Added via API." \
         || $SSH "pihole -a -b '$url'"
+        pihole_api_logout "$sid"
     else
         $SSH "pihole -a -b '$url'"
     fi
@@ -75,10 +79,14 @@ remove_blocklist() {
 
     echo "  Removing: $target"
     if [[ "$MAJOR_VER" -ge 6 ]]; then
-        # Try by URL first via API
-        $SSH "curl -sSf -X DELETE 'http://localhost/api/lists/$(python3 -c \"import urllib.parse; print(urllib.parse.quote('$target', safe=''))\")'  2>/dev/null" \
+        local sid encoded
+        sid=$(pihole_api_login) || return 1
+        encoded=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$target', safe=''))")
+        curl -sSf -X DELETE "http://$PI_HOST/api/lists/$encoded?type=block" \
+            -H "X-FTL-SID: $sid" \
         || $SSH "pihole -a -b -d '$target' 2>/dev/null" \
         || $SSH "sqlite3 /etc/pihole/gravity.db \"DELETE FROM adlist WHERE address='$target' OR id='$target'\""
+        pihole_api_logout "$sid"
     else
         $SSH "pihole -a -b -d '$target' 2>/dev/null" \
         || $SSH "sqlite3 /etc/pihole/gravity.db \"DELETE FROM adlist WHERE address='$target' OR id='$target'\""
