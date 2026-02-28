@@ -66,7 +66,7 @@ add_blocklist() {
     fi
 
     echo "  Refreshing gravity..."
-    $SSH "pihole -g"
+    $SSH "sudo pihole -g"
 }
 
 # ── Helper: remove a blocklist ────────────────────────────────────────────────
@@ -93,13 +93,13 @@ remove_blocklist() {
     fi
 
     echo "  Refreshing gravity..."
-    $SSH "pihole -g"
+    $SSH "sudo pihole -g"
 }
 
 # ── Helper: refresh gravity ───────────────────────────────────────────────────
 refresh_gravity() {
     echo "  Refreshing all blocklists (pihole -g)..."
-    $SSH "pihole -g"
+    $SSH "sudo pihole -g"
     echo "  Done."
 }
 
